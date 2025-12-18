@@ -21,7 +21,7 @@
   margin-bottom: 1.5rem;
   margin-top: 8px;
   background: transparent;
-  padding: 0.5rem 10rem ;
+  padding: 0.5rem 8rem ;
   border-radius: 6px;
   border: 2px solid #fdfefe36;
   overflow: hidden;
@@ -35,7 +35,7 @@
 .section-box{
    margin-bottom: 1.5rem;
   background: transparent;
-  padding: 0.5rem 10rem ;
+  padding: 0.5rem 8rem ;
   border-radius: 6px;
   border: 2px solid #fdfefe36;
   overflow: hidden;
@@ -115,15 +115,15 @@
   font-size: 0.9rem;
 }
 .transcription-output {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   text-align: left;
   background-color: #1f2937;
-  padding: 1rem;
+  padding: 0.5rem 8rem;
   border-radius: 8px;
   color: #f4edf8;
   max-height: 400px;
-  overflow-y: auto;
   overflow: hidden;
   backdrop-filter: blur(35px) saturate(200%);
   -webkit-backdrop-filter: blur(35px) saturate(200%);
+  border: 2px solid #fdfefe36;
 }
