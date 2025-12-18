@@ -7,18 +7,21 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-const handleFileChange = (e) => {
-  const newFiles = Array.from(e.target.files);
-  setFiles((prevFiles) => {
-    const combined = [...prevFiles, ...newFiles];
-    const uniqueFiles = Array.from(new Map(combined.map(f => [f.name, f])).values());
-    return uniqueFiles;
-  });
+  // Handle file selection
+  const handleFileChange = (e) => {
+    const newFiles = Array.from(e.target.files);
+    setFiles((prevFiles) => {
+      const combined = [...prevFiles, ...newFiles];
+      // prevent duplicates by filename
+      const uniqueFiles = Array.from(new Map(combined.map(f => [f.name, f])).values());
+      return uniqueFiles;
+    });
 
-  setResults(null);
-  setError(null);
-};
+    setResults(null);
+    setError(null);
+  };
 
+  // Upload files to FastAPI backend
   const handleUpload = async () => {
     if (!files.length) return;
 
@@ -30,7 +33,8 @@ const handleFileChange = (e) => {
     files.forEach((file) => formData.append("files", file));
 
     try {
-      const response = await fetch("https://hafsaabd82-huggingface-space.hf.space/api/predict/", {
+      // ✅ Correct endpoint for FastAPI
+      const response = await fetch("https://hafsaabd82-huggingface-space.hf.space/predict", {
         method: "POST",
         body: formData,
       });
@@ -40,7 +44,8 @@ const handleFileChange = (e) => {
       }
 
       const data = await response.json();
-      setResults(data.data?.[0] || {});
+      // ✅ FastAPI returns {"results": {...}}
+      setResults(data.results || {});
     } catch (err) {
       setError("Failed to connect to backend");
     } finally {
@@ -52,7 +57,7 @@ const handleFileChange = (e) => {
     <div className="app-root">
       <div className="container">
         <header className="header">
-          <h1 className="title">Omnilingual ASR- Transcription</h1>
+          <h1 className="title">Omnilingual ASR – Transcription</h1>
           <p>Bulk Urdu speech-to-text transcription</p>
         </header>
 
@@ -61,7 +66,7 @@ const handleFileChange = (e) => {
 
           <div className="flex-container">
             <label className="upload-area">
-              <p className="upload-icon">📂  Click or drag audio files here</p>
+              <p className="upload-icon">📂 Click or drag audio files here</p>
               <input
                 type="file"
                 multiple
@@ -96,7 +101,6 @@ const handleFileChange = (e) => {
         {results && (
           <div className="section-box">
             <h2 className="section-title">Transcriptions</h2>
-
             <div className="transcription-output-container">
               {Object.entries(results).map(([file, text]) => (
                 <div key={file} className="transcription-segment">
@@ -113,5 +117,3 @@ const handleFileChange = (e) => {
 }
 
 export default App;
-
-
