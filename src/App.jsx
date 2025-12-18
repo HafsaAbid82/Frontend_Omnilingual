@@ -97,20 +97,21 @@ function App() {
           {error && <p className="error-text">{error}</p>}
         </div>
 
-        {/* Results */}
         {results && (
-          <div className="section-box">
-            <h2 className="section-title">Transcriptions</h2>
-            <div className="transcription-output-container">
-              {Object.entries(results).map(([file, text]) => (
-                <div key={file} className="transcription-segment">
-                  <div className="speaker-label">🎧 {file}</div>
-                  <p className="segment-text">{text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+  <div className="section-box">
+    <h2 className="section-title">Transcriptions</h2>
+    <div className="transcription-output-container">
+      {Object.entries(results).map(([file, text]) => (
+        <div key={file} className="transcription-segment">
+          <div className="speaker-label">{file}</div>
+          <p className="segment-text">
+            {typeof text === "string" ? text : JSON.stringify(text)}
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
       </div>
     </div>
   );
