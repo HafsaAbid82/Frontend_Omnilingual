@@ -27,11 +27,6 @@
   overflow: hidden;
   backdrop-filter: blur(25px) saturate(200%);
   -webkit-backdrop-filter: blur(25px) saturate(200%);
-  box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.3),
-        inset 0 0 30px rgba(100, 80, 200, 0.15),
-        0 0 40px rgba(0, 247, 255, 0.05);
-    transition: all 0.5s ease;
 }
 .title{
   font-size: 2rem;
