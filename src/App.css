@@ -19,15 +19,7 @@
 *{box-sizing:border-box}
 html,body,#root{height:100%}
 
-body{
-  margin:0;
-  background:
-    linear-gradient(180deg, var(--bg) 0%, #ffffff 100%);
-  color:var(--text);
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-  align-items: center;
-  justify-content: center;
-}
+
 
 #root{
   min-height:100vh;
@@ -35,7 +27,7 @@ body{
   align-items:center;
   justify-content:center;
   padding:40px;
-   align-items: center;
+  align-items: center;
   justify-content: center;
 }
 
