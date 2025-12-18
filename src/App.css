@@ -34,7 +34,8 @@ body{
 .app-root{
   width:100%;
   justify-content: center;
-  width:800px;             
+  width:800px;
+  margin-left: 20px;
   min-height:auto;        /* IMPORTANT */
   max-height:none;              
   background:radial-gradient(circle at top, rgba(138, 133, 234, 0.578) 0%, transparent 55%),
