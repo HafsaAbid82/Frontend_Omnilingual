@@ -28,7 +28,7 @@ body{
   min-height:100vh;
   display:flex;
   justify-content:center;   /* horizontal only */
-  align-items:flex-start;   /* ⬅️ IMPORTANT */
+  align-items:flex-start;   
   padding:40px;
 }
 .app-root{
