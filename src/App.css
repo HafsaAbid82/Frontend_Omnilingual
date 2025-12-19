@@ -84,7 +84,8 @@ body{
     var(--shadow),
     0 0 0 1px rgba(255, 255, 255, 0.9) inset;
   border: 1px solid rgba(255, 255, 255, 0.5);
-margin-left: -180px;
+margin-left: -190px;
+  margin-bottom: 10px;
   gap: var(--space-lg);
   z-index: 2;
 }
