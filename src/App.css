@@ -31,7 +31,7 @@ body{
   position: relative;
   align-items:center;      /* vertical center */
   justify-content:center;  /* horizontal center */
-  padding:10px 30px;       /* safe padding, not positioning */
+  padding:10px 0;       /* safe padding, not positioning */
   display: flex;
 }
 .floating-background {
