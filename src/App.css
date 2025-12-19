@@ -28,8 +28,10 @@ body{
 }
 #root{
   min-height:100vh;
-  padding:30px 10px 10px 400px;
   position: relative;
+  align-items:center;      /* vertical center */
+  justify-content:center;  /* horizontal center */
+  padding:40px 16px;       /* safe padding, not positioning */
 }
 .floating-background {
   position: fixed;
@@ -68,8 +70,8 @@ body{
   }
 }
 .container{
-  position: absolute;
-  width: 800px;
+  position: relative; 
+  max-width: 900px; 
   min-height: min-content;
   max-height: 85vh;
   overflow-y: auto;
@@ -84,7 +86,6 @@ body{
 
   gap: var(--space-lg);
   z-index: 2;
-  margin: 0 auto;
 }
 .header{
   margin-top: 4px;
