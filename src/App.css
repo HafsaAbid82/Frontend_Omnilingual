@@ -28,7 +28,7 @@ body{
 }
 #root{
   min-height:100vh;
-  position: sticky;
+  position: fixed;
   align-items:center;      /* vertical center */
   justify-content:center;  /* horizontal center */
   padding:10px 0;       /* safe padding, not positioning */
