@@ -287,7 +287,7 @@ body{
 .audio-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 .play-pause-btn {
@@ -316,7 +316,7 @@ body{
 .time-display {
   font-size: 0.8rem;
   color: var(--muted);
-  min-width: 90px;
+  min-width: 60px;
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
@@ -340,7 +340,7 @@ body{
 .volume-control {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   min-width: 80px;
 }
 .volume-slider {
