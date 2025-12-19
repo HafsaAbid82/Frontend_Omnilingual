@@ -28,7 +28,7 @@ body{
 }
 #root{
   min-height:100vh;
-  position: relative;
+  position: static;
   align-items:center;      /* vertical center */
   justify-content:center;  /* horizontal center */
   padding:10px 0;       /* safe padding, not positioning */
@@ -72,7 +72,7 @@ body{
 }
 .container{
   position: relative; 
-  width: 800px;
+  width: 900px;
   min-height: min-content;
   max-height: 85vh;
   overflow-y: auto;
