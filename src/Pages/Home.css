@@ -6,7 +6,7 @@
   height: 100%;
   z-index: 0;
   overflow: hidden;
-  background: linear-gradient(135deg, rgb(238, 238, 238) 0%, #FAF5EB 100%);
+  background: white;
 }
 
 .floating-circle {
@@ -68,7 +68,7 @@
 
 .feature-card.selected {
   transform: translateY(-8px);
-  box-shadow: 0 12px 32px rgba(74, 144, 226, 0.15) !important;
+  box-shadow: 0 12px 32px rgba(218, 218, 219, 0.15) !important;
 }
 
 /* Recording Indicator */
@@ -496,7 +496,7 @@
 }
 
 .home-remove-file-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(244, 234, 234, 0.2);
   transform: scale(1.1);
 }
 

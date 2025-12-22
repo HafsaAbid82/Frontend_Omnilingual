@@ -1,10 +1,22 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import Divider from '@mui/material/Divider';
+import Paper from '@mui/material/Paper';
+import Tooltip from '@mui/material/Tooltip';
+import { CheckCircleOutline } from '@mui/icons-material';
+import TranslateIcon from '@mui/icons-material/Translate';
 import { 
   ArrowDropDown as ArrowDropDownIcon,
   CloudUpload as CloudUploadIcon,
   RecordVoiceOver as RecordVoiceOverIcon,
   Language as LanguageIcon,
+  PlayArrow,
+  Pause,
+  Delete as DeleteIcon,
+  AccessTime,
+  Description,
+  VolumeUp
 } from "@mui/icons-material";
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import {
   Box,
   Button,
@@ -13,13 +25,20 @@ import {
   Typography,
   Menu,
   MenuItem,
-  Grid
+  Grid,
+  IconButton,
+  LinearProgress,
+  Chip,
+  Card as MuiCard,
+  CardContent as MuiCardContent
 } from "@mui/material";
 import FolderIcon from '@mui/icons-material/Folder';
+import CircularProgress from '@mui/material/CircularProgress';
 import "./Home.css";
 
 function Home() {
   const [files, setFiles] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,6 +46,74 @@ function Home() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedCard, setSelectedCard] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isFileInputVisible, setIsFileInputVisible] = useState(false);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+
+  // Audio player ref
+  const audioRef = useRef(null);
+  
+  // Process selected file when files change
+  useEffect(() => {
+    if (files.length > 0 && processingType === 'Single Processing') {
+      const file = files[0];
+      setSelectedFile(file);
+      
+      // Create blob URL for the audio
+      const url = URL.createObjectURL(file);
+      setAudioUrl(url);
+      
+      // Create audio element to get duration
+      const audio = new Audio();
+      audio.src = url;
+      audio.onloadedmetadata = () => {
+        setAudioDuration(audio.duration);
+      };
+      
+      return () => {
+        // Clean up the URL when component unmounts or file changes
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      setSelectedFile(null);
+      setAudioUrl(null);
+    }
+  }, [files, processingType]);
+  
+  // Handle audio playback
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    // Set initial volume
+    audio.volume = volume;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, []);
+
+  // Update volume when volume state changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
   
   const handleFileChange = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -34,18 +121,38 @@ function Home() {
       file.type.startsWith('audio/') || 
       ['.wav', '.mp3', '.m4a', '.ogg', '.flac'].some(ext => file.name.toLowerCase().endsWith(ext))
     );
-    setFiles((prevFiles) => {
-      const combined = [...prevFiles, ...validAudioFiles];
-      const uniqueFiles = Array.from(new Map(combined.map(f => [f.name + f.size, f])).values());
-      return uniqueFiles;
-    });
+    
+    if (processingType === 'Single Processing') {
+      // For single processing, only keep one file
+      setFiles(validAudioFiles.slice(0, 1));
+    } else {
+      // For bulk processing, keep all files
+      setFiles((prevFiles) => {
+        const combined = [...prevFiles, ...validAudioFiles];
+        const uniqueFiles = Array.from(new Map(combined.map(f => [f.name + f.size, f])).values());
+        return uniqueFiles;
+      });
+    }
+    
     setResults(null);
     setError(null);
-    setSelectedCard(0); // Auto-select upload audio card when files are added
+    setSelectedCard(0);
+    setIsFileInputVisible(false);
   };
   
-  const removeFile = (fileName) => {
-    setFiles(files.filter(f => f.name !== fileName));
+  const removeFile = () => {
+    setFiles([]);
+    setSelectedFile(null);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
   };
   
   const handleUpload = async () => {
@@ -70,7 +177,7 @@ function Home() {
 
       const data = await response.json();
       setResults(data.results || {});
-      setSelectedCard(2); // Show translation card when results are ready
+      setSelectedCard(2);
     } catch (err) {
       setError("Failed to connect to backend");
     } finally {
@@ -89,12 +196,16 @@ function Home() {
   const handleProcessingTypeSelect = (type) => {
     setProcessingType(type);
     setAnchorEl(null);
+    
+    if (type === 'Single Processing') {
+      fileInputRef.current?.click();
+      setIsFileInputVisible(true);
+    }
   };
 
   const handleCardClick = (index) => {
     setSelectedCard(index);
     if (index === 1) {
-      // Real-time transcription simulation
       setIsRecording(!isRecording);
     }
   };
@@ -105,24 +216,54 @@ function Home() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const handlePlayPause = () => {
+    if (!audioRef.current || !audioUrl) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleTimeChange = (e) => {
+    if (!audioRef.current) return;
+    const time = parseFloat(e.target.value);
+    audioRef.current.currentTime = time;
+    setCurrentTime(time);
+  };
+
+  const fileInputRef = useRef(null);
+
   const featureCards = [
     {
       title: "Upload Audio",
       description: "Upload and transcribe audio files in multiple formats",
       icon: <CloudUploadIcon sx={{ fontSize: 48, color: '#2d3748' }} />,
-      color: "rgba(74, 144, 226, 0.1)"
+      color: "rgba(241, 244, 248, 0.1)",
+      action: () => {
+        fileInputRef.current?.click();
+        setIsFileInputVisible(true);
+      }
     },
     {
       title: "Real-time Transcription",
       description: "Live speech recognition with instant transcription",
       icon: <RecordVoiceOverIcon sx={{ fontSize: 48, color: '#2d3748' }} />,
-      color: "rgba(255, 107, 107, 0.1)"
+      color: "rgba(247, 240, 240, 0.1)"
     },
     {
       title: "Multi-language Translation",
       description: "Translate transcriptions into multiple languages",
       icon: <LanguageIcon sx={{ fontSize: 48, color: '#2d3748' }} />,
-      color: "rgba(76, 175, 80, 0.1)"
+      color: "rgba(248, 250, 248, 0.1)"
     }
   ];
 
@@ -164,8 +305,23 @@ function Home() {
         })}
       </div>
 
+      {/* Hidden file input */}
+      <input
+        type="file"
+        accept=".wav,.mp3,.m4a,.ogg,.flac,audio/*"
+        onChange={handleFileChange}
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+      />
+
+      {/* Audio element for playback */}
+      <audio
+        ref={audioRef}
+        src={audioUrl || ''}
+        style={{ display: 'none' }}
+      />
+
       <Box className="home-container">
-        {/* Header */}
         <Box className="home-header">
           <Typography variant="h1" className="home-title">
             Audio Transcription
@@ -183,84 +339,92 @@ function Home() {
             Transcribe your audio files efficiently with AI-powered accuracy and seamless workflow.
           </Typography>
         </Box>
+        
+        {/* Processing Type Selector */}
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-            <Button
-              variant="outlined"
-              endIcon={<ArrowDropDownIcon />}
-              onClick={handleProcessingMenuOpen}
-              sx={{
-                borderColor: 'rgba(74, 144, 226, 0.3)',
-                color: '#1a2332',
-                backgroundColor: '#FAF5EB',
-                borderRadius: '10px',
-                padding: '10px 24px',
-                fontWeight: 500,
-                '&:hover': {
-                  backgroundColor: 'rgba(199, 201, 203, 0.1)',
-                  borderColor: '#2d3748'
-                }
+          <Button
+            variant="outlined"
+            endIcon={<ArrowDropDownIcon />}
+            onClick={handleProcessingMenuOpen}
+            sx={{
+              borderColor: 'rgba(74, 144, 226, 0.3)',
+              color: '#1a2332',
+              backgroundColor: 'rgb(244, 244, 244)',
+              borderRadius: '10px',
+              padding: '10px 24px',
+              fontWeight: 500,
+              '&:hover': {
+                backgroundColor: 'rgba(199, 201, 203, 0.1)',
+                borderColor: '#2d3748'
+              }
+            }}
+          >
+            {processingType}
+          </Button>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleProcessingMenuClose}
+            PaperProps={{
+              sx: {
+                borderRadius: '12px',
+                marginTop: '8px',
+                minWidth: '200px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                backgroundColor: '#1a2332',
+              }
+            }}
+          >
+            <MenuItem 
+              onClick={() => handleProcessingTypeSelect('Single Processing')}
+              sx={{ 
+                padding: '12px 16px',
+                color: processingType === 'Single Processing' ? '#adb5c4ff' : '#FAF5EB',
+                display: 'flex', alignItems: 'center', gap: '8px'
               }}
             >
-              {processingType}
-            </Button>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleProcessingMenuClose}
-              PaperProps={{
-                sx: {
-                  borderRadius: '12px',
-                  marginTop: '8px',
-                  minWidth: '200px',
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-                  backgroundColor: '#1a2332',
-                }
+              <CloudUploadIcon /> 
+              Single Processing
+            </MenuItem>
+            <MenuItem 
+              onClick={() => handleProcessingTypeSelect('Bulk Processing')}
+              sx={{ 
+                padding: '12px 16px',
+                color: processingType === 'Bulk Processing' ? '#adb5c4ff' : '#FAF5EB',
+                display: 'flex', alignItems: 'center', gap: '8px'
               }}
             >
-              <MenuItem 
-                onClick={() => handleProcessingTypeSelect('Single Processing')}
-                sx={{ 
-                  padding: '12px 16px',
-                  color: processingType === 'Single Processing' ? '#adb5c4ff' : '#FAF5EB',
-                  display: 'flex', alignItems: 'center', gap: '8px'
-                }}
-              >
-                <CloudUploadIcon /> 
-                Single Processing
-              </MenuItem>
-              <MenuItem 
-                onClick={() => handleProcessingTypeSelect('Bulk Processing')}
-                sx={{ 
-                  padding: '12px 16px',
-                  color: processingType === 'Bulk Processing' ? '#adb5c4ff' : '#FAF5EB',
-                  display: 'flex', alignItems: 'center', gap: '8px'
-                }}
-              >
-                <FolderIcon />
-                Bulk Processing
-              </MenuItem>
-            </Menu>
-          </Box>
+              <FolderIcon />
+              Bulk Processing
+            </MenuItem>
+          </Menu>
+        </Box>
 
         {/* Feature Cards */}
-        <Box sx={{ mb: 6,  px: 2 }}>
+        <Box sx={{ mb: 6, px: 2 }}>
           <Grid container spacing={3} sx={{justifyContent: 'center', alignItems: 'center', mt: 8}}>
             {featureCards.map((card, index) => (
               <Grid item xs={12} md={4} key={index}>
                 <Card 
                   className={`feature-card ${selectedCard === index ? 'selected' : ''}`}
-                  onClick={() => handleCardClick(index)}
+                  onClick={() => {
+                    if (card.action) {
+                      card.action();
+                    }
+                    handleCardClick(index);
+                  }}
                   sx={{
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     height: '100%',
-                    backgroundColor: selectedCard === index ? card.color : '#FAF5EB',
-                    border: selectedCard === index ? '2px solid #4A90E2' : '1px solid rgba(11, 17, 24, 0.1)',
+                    backgroundColor: selectedCard === index ? card.color : 'rgb(244, 244, 244)',
+                    border: selectedCard === index ? '2px solid #0B1118' : '1px solid rgba(11, 17, 24, 0.1)',
                     borderRadius: '16px',
                     '&:hover': {
                       transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
-                    }
+                      boxShadow: '0 8px 24px rgba(254, 254, 254, 0.12)'
+                    }, 
+                    mb: 8
                   }}
                 >
                   <CardContent sx={{ textAlign: 'center', py: 4 }}>
@@ -273,6 +437,22 @@ function Home() {
                     <Typography variant="body2" sx={{ color: '#666', lineHeight: 1.5 }}>
                       {card.description}
                     </Typography>
+                    
+                    {/* Show "browse no file selected" only for Upload Audio card when no file is selected */}
+                    {index === 0 && files.length === 0 && processingType === 'Single Processing' && isFileInputVisible && (
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          mt: 2, 
+                          color: '#666',
+                          fontStyle: 'italic',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        No file selected. Click to browse files.
+                      </Typography>
+                    )}
+                    
                     {index === 1 && isRecording && (
                       <Box sx={{ mt: 2 }}>
                         <Box className="recording-indicator">
@@ -280,7 +460,7 @@ function Home() {
                           <span></span>
                           <span></span>
                         </Box>
-                        <Typography variant="caption" sx={{ color: '#FF6B6B', fontWeight: 500 }}>
+                        <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>
                           Recording...
                         </Typography>
                       </Box>
@@ -291,7 +471,385 @@ function Home() {
             ))}
           </Grid>
         </Box>
-        </Box>
+
+        {/* Selected File Container - Appears after cards */}
+        {selectedFile && processingType === 'Single Processing' && (
+            <div style={{ maxWidth: '900px', margin: '0 auto', marginBottom: '48px', borderRadius: '16px', border: '1px solid rgba(11, 17, 24, 0.1)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}>
+              <MuiCardContent>
+                <Typography variant="h6" sx={{ 
+                  fontWeight: 600, 
+                  mb: 3, 
+                  color: '#0B1118',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}>
+                  <Description sx={{ color: '#2d3748' }} />
+                  Selected Audio File
+                </Typography>
+               <Divider sx={{ my: 2, borderColor: 'rgba(11, 17, 24, 0.1)' , mt:-2}} />
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  mb: 3,
+                  p: 2,
+                  backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                  borderRadius: '12px',
+                }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 2,
+                      width: '100%'
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ fontWeight: 600, color: '#0B1118' }}
+                      >
+                        {selectedFile.name}
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: '#666' }}>
+                          {formatFileSize(selectedFile.size)}
+                        </Typography>
+
+                        <Typography
+                          variant="caption"
+                          sx={{ color: '#666', textTransform: 'uppercase' }}
+                        >
+                          {selectedFile.type.split('/')[1] || 'audio'}
+                        </Typography>
+                        <Chip 
+                          icon={<AccessTime />}
+                          label={formatTime(audioDuration)}
+                          size="small"
+                          variant="outlined"
+                          sx={{ 
+                            borderColor: 'rgba(74, 144, 226, 0.3)',
+                            color: '#2d3748'
+                          }}
+                        />
+                      </Box>
+                    </Box>
+
+                    {/* Delete button */}
+                    <IconButton
+                      onClick={removeFile}
+                      sx={{
+                        color: '#dc2626',
+                        '&:hover': {
+                          backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        },
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    mb: 2,
+                    width: '100%'
+                  }}
+                >
+                  {/* Play / Pause */}
+                  <IconButton
+                    onClick={handlePlayPause}
+                    sx={{
+                      backgroundColor: '#0B1118',
+                      color: 'white',
+                      width: 56,
+                      height: 56,
+                      '&:hover': { backgroundColor: '#1a2332' }
+                    }}
+                  >
+                    {isPlaying ? <Pause /> : <PlayArrow />}
+                  </IconButton>
+
+                  {/* Progress Bar */}
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#666', minWidth: 40 }}>
+                        {formatTime(currentTime)}
+                      </Typography>
+
+                      <Box sx={{ flexGrow: 1 }}>
+                        <input
+                          type="range"
+                          min="0"
+                          max={audioDuration || 100}
+                          value={currentTime}
+                          onChange={handleTimeChange}
+                          style={{
+                            width: '100%',
+                            height: '4px',
+                            borderRadius: '2px',
+                            background: `linear-gradient(to right, #0B1118 ${(currentTime / audioDuration) * 100}%, #e5e7eb ${(currentTime / audioDuration) * 100}%)`,
+                            WebkitAppearance: 'none',
+                            appearance: 'none'
+                          }}
+                        />
+                      </Box>
+
+                      <Typography variant="caption" sx={{ color: '#666', minWidth: 40 }}>
+                        {formatTime(audioDuration)}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Volume Control */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 140 }}>
+                    <VolumeUp sx={{ color: '#0B1118' }} />
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={volume}
+                      onChange={(e) => {
+                        setVolume(parseFloat(e.target.value));
+                      }}
+                      style={{
+                        width: '100%',
+                        height: '4px',
+                        borderRadius: '2px',
+                        background: `linear-gradient(to right, #0B1118 ${volume * 100}%, #e5e7eb ${volume * 100}%)`,
+                        WebkitAppearance: 'none',
+                        appearance: 'none'
+                      }}
+                    />
+                  </Box>
+                  <Button
+                    variant="contained"
+                    onClick={handleUpload}
+                    disabled={loading}
+                    startIcon={<Description />}
+                    sx={{
+                      backgroundColor: '#0B1118',
+                      color: 'white',
+                      borderRadius: '12px',
+                      padding: '4px 2px',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      minWidth: '200px',
+                      '&:hover': {
+                        backgroundColor: '#2d3748',
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 8px 20px rgba(11, 17, 24, 0.2)'
+                      },
+                      '&:disabled': {
+                        backgroundColor: '#9ca3af'
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    {loading ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 16, height: 16 }}>
+                          <CircularProgress size={16} color="inherit" />
+                        </Box>
+                        Processing...
+                      </Box>
+                    ) : (
+                      'Transcribe Audio'
+                    )}
+                  </Button>
+                </Box>
+
+                {/* Loading Indicator */}
+                {loading && (
+                  <Box sx={{ mt: 3 }}>
+                    <Typography variant="body2" sx={{ color: '#666', mb: 1, textAlign: 'center' }}>
+                      Transcribing audio file...
+                    </Typography>
+                    <LinearProgress 
+                      sx={{ 
+                        height: 6, 
+                        borderRadius: 3,
+                        backgroundColor: 'rgba(11, 17, 24, 0.1)',
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: '#0B1118'
+                        }
+                      }} 
+                    />
+                  </Box>
+                )}
+              </MuiCardContent>
+          </div>
+        )}
+
+ {/* Transcription Results */}
+        {results && typeof results === 'object' && (
+         <div style={{ maxWidth: '900px', margin: '0 auto', marginBottom: '48px', borderRadius: '16px', border: '1px solid rgba(11, 17, 24, 0.1)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}> 
+          <Box sx={{ 
+            maxWidth: '900px', 
+            margin: '0 auto', 
+            justifyContent: 'center',
+            alignItems: 'center',
+            mb: 6,
+          }}>
+              <CardContent>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'left', 
+                  justifyContent: 'center', 
+                  mb: 4,
+                  flexDirection: 'column',
+                  textAlign: 'center'
+                }}>
+                  <Typography variant="h6" sx={{ 
+                  fontWeight: 600, 
+                  textAlign: 'left',
+                  mb: 3, 
+                  color: '#0B1118',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}>
+                    <RecordVoiceOverIcon sx={{ color: '#2d3748' }} />
+                 Transcription Results
+                </Typography>      
+                </Box>
+                <Divider sx={{ my: 2, borderColor: 'rgba(11, 17, 24, 0.1)' , mt:-2}} />
+                
+                <Box sx={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  borderRadius: '12px',
+                  p: 3,
+                }}>
+                  {Object.entries(results).map(([fileName, transcription], index) => (
+                    <Box key={fileName} sx={{ mb: index !== Object.entries(results).length - 1 ? 3 : 0 }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        mb: 2,
+                        p: 1.5,
+                      }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2 , justifyContent: 'space-between', width: '100%'}}>
+                        <Typography sx={{ 
+                          fontWeight: 600, 
+                          color: '#0B1118',
+                          fontSize: '1rem',
+                          mb: 2,
+                        }}>
+                          {selectedFile.name}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                 <Tooltip title={copied ? 'Copied to clipboard!' : 'Copy'}>
+  <IconButton
+    onClick={() => {
+      const text = Object.entries(results)
+        .map(([fileName, transcription]) =>
+          `${fileName}:\n${
+            typeof transcription === 'string'
+              ? transcription
+              : JSON.stringify(transcription, null, 2)
+          }`
+        )
+        .join('\n\n');
+
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      });
+    }}
+    sx={{
+      color: copied ? '#16a34a' : '#4A90E2',
+      borderRadius: '100%',
+      p: 1,
+      '&:hover': {
+        backgroundColor: copied
+          ? 'rgba(22, 163, 74, 0.12)'
+          : 'rgba(74, 144, 226, 0.08)',
+      },
+      transition: 'all 0.2s ease',
+    }}
+  >
+    {copied ? (
+      <CheckCircleOutline fontSize="small" />
+    ) : (
+      <ContentCopyIcon fontSize="small" />
+    )}
+  </IconButton>
+</Tooltip>
+                </Box>
+                </Box>
+                      <Paper 
+                        elevation={0}
+                        sx={{ 
+                          p: 2.5,
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(11, 17, 24, 0.05)'
+                        }}
+                      >
+                        <Typography sx={{ 
+                          color: '#2d3748',
+                          lineHeight: 1.6,
+                          fontSize: '0.95rem',
+                          whiteSpace: 'pre-wrap'
+                        }}>
+                          {typeof transcription === "string" ? transcription : JSON.stringify(transcription, null, 2)}
+                        </Typography>
+                      </Paper>
+                      {index !== Object.entries(results).length - 1 && (
+                        <Divider sx={{ my: 3, borderColor: 'rgba(11, 17, 24, 0.05)' }} />
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+                
+                {/* Copy to Clipboard Button */}
+              </CardContent>
+          </Box>
+</div>  
+
+        )}
+        {/* Error Message */}
+        {error && (
+          <Box sx={{ maxWidth: '800px', mx: 'auto', mb: 6 }}>
+            <Paper elevation={0} sx={{ 
+              borderRadius: '16px', 
+              border: '1px solid rgba(220, 38, 38, 0.2)', 
+              backgroundColor: 'rgba(220, 38, 38, 0.05)',
+              p: 3
+            }}>
+              <Typography sx={{ color: '#dc2626', textAlign: 'center' }}>
+                {error}
+              </Typography>
+            </Paper>
+          </Box>
+        )}
+      </Box>
+      
+        {/* Bulk Processing File List - Appears after cards */}
+        {files.length > 0 && processingType === 'Bulk Processing' && (
+          <Box sx={{ maxWidth: '800px', mx: 'auto', mb: 6 }}>
+            <MuiCard sx={{
+              backgroundColor: 'rgb(244, 244, 244)',
+              border: '1px solid rgba(11, 17, 24, 0.1)',
+              borderRadius: '16px'
+            }}>
+              <MuiCardContent>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#0B1118' }}>
+                  Bulk Files ({files.length})
+                </Typography>
+                {/* Add bulk file list UI here */}
+              </MuiCardContent>
+            </MuiCard>
+          </Box>
+        )}
     </>
   );
 }

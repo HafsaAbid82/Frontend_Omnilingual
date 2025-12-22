@@ -1,7 +1,11 @@
-/* Logo styling */
+.navbar-toolbar {
+  background: rgb(244, 244, 244) !important;
+  backdrop-filter: 'blur(8px)' !important;
+  box-shadow: var(--shadow) !important;
+} 
 .logo {
-  width: 48px; /* Increased size */
-  height: 48px; /* Increased size */
+  width: 48px; 
+  height: 48px; 
   object-fit: contain;
   display: block;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -11,28 +15,20 @@
 .logo:hover {
   transform: scale(1.1);
 }
-
-/* Remove focus outlines for IconButtons */
 .MuiIconButton-root:focus,
 .MuiIconButton-root:focus-visible {
   outline: none !important;
   box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2) !important;
 }
-
-/* Smooth transitions for all interactive elements */
 .MuiIconButton-root {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
-
-/* Menu item styling */
 .MuiMenuItem-root {
   transition: all 0.2s ease !important;
   border-radius: 6px !important;
   margin: 0 8px !important;
   width: calc(100% - 16px) !important;
 }
-
-/* Custom scrollbar for dropdown */
 .MuiMenu-paper::-webkit-scrollbar {
   width: 6px;
 }
@@ -46,8 +42,6 @@
   background: rgba(255,255,255,0.2);
   border-radius: 3px;
 }
-
-/* Animation for menu */
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -62,8 +56,6 @@
 .MuiMenu-paper {
   animation: slideIn 0.2s ease-out !important;
 }
-
-/* Mobile responsiveness */
 @media (max-width: 600px) {
   .logo {
     width: 40px;
@@ -74,13 +66,9 @@
     font-size: 1.25rem !important;
   }
 }
-
-/* Hover effect for menu items */
 .MuiMenuItem-root:hover {
   transform: translateX(4px) !important;
 }
-
-/* Full width navbar with standard size */
 .MuiAppBar-root {
   background: linear-gradient(90deg, #FAF5EB 0%, #F8F1E0 100%) !important;
   width: 100% !important;
@@ -92,42 +80,31 @@
   justify-content: center !important;
   align-items: center !important;
 }
-
-/* Ensure the outer container has no margin */
 .MuiBox-root {
   margin: 0 !important;
   padding: 0 !important;
 }
-
-/* Center the Toolbar content */
 .MuiToolbar-root {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
   margin: 0 auto !important;
   width: 100% !important;
-  max-width: 1680px !important; /* Increased to match the component */
+  max-width: 1680px !important;
 }
-
-/* Remove any default body/page margins that might affect navbar positioning */
 body {
   margin: 0;
   padding: 0;
 }
 
-/* Ensure the navbar is at the very top */
 #root, .App {
   margin: 0;
   padding: 0;
 }
-
-/* Email icon styling */
 .MuiSvgIcon-root.email-icon {
   font-size: 0.85rem;
   color: #666;
 }
-
-/* Responsive adjustments for larger screens */
 @media (min-width: 1920px) {
   .MuiToolbar-root {
     max-width: 1800px !important;

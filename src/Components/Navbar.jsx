@@ -174,10 +174,7 @@ function Navbar() {
         <AppBar 
           position="relative" 
           sx={{ 
-            backgroundColor: '#FAF5EB',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
             py: 1,
-            borderBottom: '1px solid rgba(11, 17, 24, 0.1)',
             mt: 0,
             display: 'flex',
             justifyContent: 'space-between',
@@ -192,12 +189,14 @@ function Navbar() {
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center',
-              maxWidth: '1680px', // Increased to larger standard size
+              maxWidth: '1200px', // Increased to larger standard size
               margin: '0 auto',
               width: '100%',
               minHeight: '80px',
+              
               px: { xs: 2, sm: 3, md: 4, lg: 6, xl: 8 } // Increased padding for larger width
             }}
+            className="navbar-toolbar"
           >
             {/* Left side: Logo and Brand Name */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
