@@ -186,7 +186,7 @@ function Navbar() {
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center',
-              maxWidth: '1200px', // Increased to larger standard size
+              maxWidth: '1000px', // Increased to larger standard size
               margin: '0 auto',
               width: '100%',
               minHeight: '80px',
