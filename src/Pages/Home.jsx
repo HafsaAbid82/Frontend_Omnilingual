@@ -4,6 +4,7 @@ import Paper from '@mui/material/Paper';
 import Tooltip from '@mui/material/Tooltip';
 import { CheckCircleOutline } from '@mui/icons-material';
 import TranslateIcon from '@mui/icons-material/Translate';
+import BulkProcessing from "../Components/BulkProcessing";
 import { 
   ArrowDropDown as ArrowDropDownIcon,
   CloudUpload as CloudUploadIcon,
@@ -53,22 +54,22 @@ function Home() {
   const [volume, setVolume] = useState(1);
   const [audioUrl, setAudioUrl] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [bulkFiles, setBulkFiles] = useState([]); 
+  const [showBulkProcessing, setShowBulkProcessing] = useState(false);
+  const [shouldTriggerBulkInput, setShouldTriggerBulkInput] = useState(false);
 
-
-  // Audio player ref
+ 
   const audioRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const bulkFileInputRef = useRef(null);
   
-  // Process selected file when files change
+ 
   useEffect(() => {
     if (files.length > 0 && processingType === 'Single Processing') {
       const file = files[0];
       setSelectedFile(file);
-      
-      // Create blob URL for the audio
       const url = URL.createObjectURL(file);
       setAudioUrl(url);
-      
-      // Create audio element to get duration
       const audio = new Audio();
       audio.src = url;
       audio.onloadedmetadata = () => {
@@ -76,7 +77,6 @@ function Home() {
       };
       
       return () => {
-        // Clean up the URL when component unmounts or file changes
         URL.revokeObjectURL(url);
       };
     } else {
@@ -84,13 +84,23 @@ function Home() {
       setAudioUrl(null);
     }
   }, [files, processingType]);
+  useEffect(() => {
+    if (showBulkProcessing && bulkFileInputRef.current) {
   
-  // Handle audio playback
+      const timer = setTimeout(() => {
+        bulkFileInputRef.current.click();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showBulkProcessing]);
+  
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    // Set initial volume
+    
     audio.volume = volume;
 
     const updateTime = () => setCurrentTime(audio.currentTime);
@@ -108,7 +118,7 @@ function Home() {
     };
   }, []);
 
-  // Update volume when volume state changes
+ 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
@@ -123,10 +133,8 @@ function Home() {
     );
     
     if (processingType === 'Single Processing') {
-      // For single processing, only keep one file
       setFiles(validAudioFiles.slice(0, 1));
     } else {
-      // For bulk processing, keep all files
       setFiles((prevFiles) => {
         const combined = [...prevFiles, ...validAudioFiles];
         const uniqueFiles = Array.from(new Map(combined.map(f => [f.name + f.size, f])).values());
@@ -138,6 +146,20 @@ function Home() {
     setError(null);
     setSelectedCard(0);
     setIsFileInputVisible(false);
+  };
+  
+  const handleBulkFileChange = (e) => {
+    const newFiles = Array.from(e.target.files);
+    const validAudioFiles = newFiles.filter(file => 
+      file.type.startsWith('audio/') || 
+      ['.wav', '.mp3', '.m4a', '.ogg', '.flac'].some(ext => 
+        file.name.toLowerCase().endsWith(ext)
+      )
+    );
+    
+    setBulkFiles(validAudioFiles);
+    setResults(null);
+    setError(null);
   };
   
   const removeFile = () => {
@@ -193,13 +215,37 @@ function Home() {
     setAnchorEl(null);
   };
 
-  const handleProcessingTypeSelect = (type) => {
-    setProcessingType(type);
+  const handleProcessingTypeSelect = (selectedType) => {
+    setProcessingType(selectedType);
     setAnchorEl(null);
     
-    if (type === 'Single Processing') {
-      fileInputRef.current?.click();
-      setIsFileInputVisible(true);
+    if (selectedType === 'Single Processing') {
+      setShowBulkProcessing(false);
+      setBulkFiles([]);
+      setFiles([]);
+      setSelectedFile(null);
+      setAudioUrl(null);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setTimeout(() => {
+        fileInputRef.current?.click();
+      }, 100);
+    } else if (selectedType === 'Bulk Processing') {
+      setShowBulkProcessing(true);
+      setFiles([]);
+      setSelectedFile(null);
+      setResults(null);
+      setAudioUrl(null);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setIsPlaying(false);
+      setCurrentTime(0);
     }
   };
 
@@ -240,32 +286,6 @@ function Home() {
     setCurrentTime(time);
   };
 
-  const fileInputRef = useRef(null);
-
-  const featureCards = [
-    {
-      title: "Upload Audio",
-      description: "Upload and transcribe audio files in multiple formats",
-      icon: <CloudUploadIcon sx={{ fontSize: 48, color: '#2d3748' }} />,
-      color: "rgba(241, 244, 248, 0.1)",
-      action: () => {
-        fileInputRef.current?.click();
-        setIsFileInputVisible(true);
-      }
-    },
-    {
-      title: "Real-time Transcription",
-      description: "Live speech recognition with instant transcription",
-      icon: <RecordVoiceOverIcon sx={{ fontSize: 48, color: '#2d3748' }} />,
-      color: "rgba(247, 240, 240, 0.1)"
-    },
-    {
-      title: "Multi-language Translation",
-      description: "Translate transcriptions into multiple languages",
-      icon: <LanguageIcon sx={{ fontSize: 48, color: '#2d3748' }} />,
-      color: "rgba(248, 250, 248, 0.1)"
-    }
-  ];
 
   return (
     <>
@@ -305,7 +325,6 @@ function Home() {
         })}
       </div>
 
-      {/* Hidden file input */}
       <input
         type="file"
         accept=".wav,.mp3,.m4a,.ogg,.flac,audio/*"
@@ -313,8 +332,18 @@ function Home() {
         ref={fileInputRef}
         style={{ display: 'none' }}
       />
+       <input
+        type="file"
+        ref={bulkFileInputRef}
+        onChange={handleBulkFileChange}
+        style={{ display: 'none' }}
+        multiple
+        accept=".wav,.mp3,.m4a,.ogg,.flac,audio/*"
+        webkitdirectory=""
+        directory=""
+        mozdirectory=""
+      />
 
-      {/* Audio element for playback */}
       <audio
         ref={audioRef}
         src={audioUrl || ''}
@@ -340,8 +369,7 @@ function Home() {
           </Typography>
         </Box>
         
-        {/* Processing Type Selector */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4, }}>
           <Button
             variant="outlined"
             endIcon={<ArrowDropDownIcon />}
@@ -349,10 +377,12 @@ function Home() {
             sx={{
               borderColor: 'rgba(74, 144, 226, 0.3)',
               color: '#1a2332',
-              backgroundColor: 'rgb(244, 244, 244)',
+              backgroundColor: 'transparent',
+              backdropFilter: 'blur(12px)',
               borderRadius: '10px',
               padding: '10px 24px',
               fontWeight: 500,
+              mb:8,
               '&:hover': {
                 backgroundColor: 'rgba(199, 201, 203, 0.1)',
                 borderColor: '#2d3748'
@@ -371,7 +401,8 @@ function Home() {
                 marginTop: '8px',
                 minWidth: '200px',
                 boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-                backgroundColor: '#1a2332',
+                backgroundColor: 'transparent',
+                backdropFilter: 'blur(12px)',
               }
             }}
           >
@@ -379,7 +410,7 @@ function Home() {
               onClick={() => handleProcessingTypeSelect('Single Processing')}
               sx={{ 
                 padding: '12px 16px',
-                color: processingType === 'Single Processing' ? '#adb5c4ff' : '#FAF5EB',
+                color: processingType === 'Single Processing' ? '#adb5c4ff' : '#1a2332',
                 display: 'flex', alignItems: 'center', gap: '8px'
               }}
             >
@@ -390,7 +421,7 @@ function Home() {
               onClick={() => handleProcessingTypeSelect('Bulk Processing')}
               sx={{ 
                 padding: '12px 16px',
-                color: processingType === 'Bulk Processing' ? '#adb5c4ff' : '#FAF5EB',
+                color: processingType === 'Bulk Processing' ? '#adb5c4ff' : '#1a2332',
                 display: 'flex', alignItems: 'center', gap: '8px'
               }}
             >
@@ -399,80 +430,6 @@ function Home() {
             </MenuItem>
           </Menu>
         </Box>
-
-        {/* Feature Cards */}
-        <Box sx={{ mb: 6, px: 2 }}>
-          <Grid container spacing={3} sx={{justifyContent: 'center', alignItems: 'center', mt: 8}}>
-            {featureCards.map((card, index) => (
-              <Grid item xs={12} md={4} key={index}>
-                <Card 
-                  className={`feature-card ${selectedCard === index ? 'selected' : ''}`}
-                  onClick={() => {
-                    if (card.action) {
-                      card.action();
-                    }
-                    handleCardClick(index);
-                  }}
-                  sx={{
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    height: '100%',
-                    backgroundColor: selectedCard === index ? card.color : 'rgb(244, 244, 244)',
-                    border: selectedCard === index ? '2px solid #0B1118' : '1px solid rgba(11, 17, 24, 0.1)',
-                    borderRadius: '16px',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 24px rgba(254, 254, 254, 0.12)'
-                    }, 
-                    mb: 8
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                    <Box sx={{ mb: 2 }}>
-                      {card.icon}
-                    </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, color: '#0B1118' }}>
-                      {card.title}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#666', lineHeight: 1.5 }}>
-                      {card.description}
-                    </Typography>
-                    
-                    {/* Show "browse no file selected" only for Upload Audio card when no file is selected */}
-                    {index === 0 && files.length === 0 && processingType === 'Single Processing' && isFileInputVisible && (
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          mt: 2, 
-                          color: '#666',
-                          fontStyle: 'italic',
-                          fontSize: '0.875rem'
-                        }}
-                      >
-                        No file selected. Click to browse files.
-                      </Typography>
-                    )}
-                    
-                    {index === 1 && isRecording && (
-                      <Box sx={{ mt: 2 }}>
-                        <Box className="recording-indicator">
-                          <span></span>
-                          <span></span>
-                          <span></span>
-                        </Box>
-                        <Typography variant="caption" sx={{ color: '#666', fontWeight: 500 }}>
-                          Recording...
-                        </Typography>
-                      </Box>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-
-        {/* Selected File Container - Appears after cards */}
         {selectedFile && processingType === 'Single Processing' && (
             <div style={{ maxWidth: '900px', margin: '0 auto', marginBottom: '48px', borderRadius: '16px', border: '1px solid rgba(11, 17, 24, 0.1)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}>
               <MuiCardContent>
@@ -493,7 +450,6 @@ function Home() {
                   alignItems: 'center',
                   mb: 3,
                   p: 2,
-                  backgroundColor: 'rgba(255, 255, 255, 0.5)',
                   borderRadius: '12px',
                 }}>
                   <Box
@@ -537,7 +493,6 @@ function Home() {
                       </Box>
                     </Box>
 
-                    {/* Delete button */}
                     <IconButton
                       onClick={removeFile}
                       sx={{
@@ -561,7 +516,6 @@ function Home() {
                     width: '100%'
                   }}
                 >
-                  {/* Play / Pause */}
                   <IconButton
                     onClick={handlePlayPause}
                     sx={{
@@ -575,7 +529,6 @@ function Home() {
                     {isPlaying ? <Pause /> : <PlayArrow />}
                   </IconButton>
 
-                  {/* Progress Bar */}
                   <Box sx={{ flexGrow: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Typography variant="caption" sx={{ color: '#666', minWidth: 40 }}>
@@ -606,7 +559,6 @@ function Home() {
                     </Box>
                   </Box>
 
-                  {/* Volume Control */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 140 }}>
                     <VolumeUp sx={{ color: '#0B1118' }} />
                     <input
@@ -665,8 +617,6 @@ function Home() {
                     )}
                   </Button>
                 </Box>
-
-                {/* Loading Indicator */}
                 {loading && (
                   <Box sx={{ mt: 3 }}>
                     <Typography variant="body2" sx={{ color: '#666', mb: 1, textAlign: 'center' }}>
@@ -687,8 +637,12 @@ function Home() {
               </MuiCardContent>
           </div>
         )}
-
- {/* Transcription Results */}
+         {processingType === 'Bulk Processing' && (
+          <BulkProcessing 
+            files={bulkFiles}
+            onFilesChange={setBulkFiles}
+          />
+        )}
         {results && typeof results === 'object' && (
          <div style={{ maxWidth: '900px', margin: '0 auto', marginBottom: '48px', borderRadius: '16px', border: '1px solid rgba(11, 17, 24, 0.1)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}> 
           <Box sx={{ 
@@ -789,7 +743,8 @@ function Home() {
                         elevation={0}
                         sx={{ 
                           p: 2.5,
-                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                           background: "transparent" ,
+                           backdropfilter: 'blur(8px)',
                           borderRadius: '8px',
                           border: '1px solid rgba(11, 17, 24, 0.05)'
                         }}
@@ -810,13 +765,11 @@ function Home() {
                   ))}
                 </Box>
                 
-                {/* Copy to Clipboard Button */}
               </CardContent>
           </Box>
 </div>  
 
         )}
-        {/* Error Message */}
         {error && (
           <Box sx={{ maxWidth: '800px', mx: 'auto', mb: 6 }}>
             <Paper elevation={0} sx={{ 
@@ -832,26 +785,8 @@ function Home() {
           </Box>
         )}
       </Box>
-      
-        {/* Bulk Processing File List - Appears after cards */}
-        {files.length > 0 && processingType === 'Bulk Processing' && (
-          <Box sx={{ maxWidth: '800px', mx: 'auto', mb: 6 }}>
-            <MuiCard sx={{
-              backgroundColor: 'rgb(244, 244, 244)',
-              border: '1px solid rgba(11, 17, 24, 0.1)',
-              borderRadius: '16px'
-            }}>
-              <MuiCardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#0B1118' }}>
-                  Bulk Files ({files.length})
-                </Typography>
-                {/* Add bulk file list UI here */}
-              </MuiCardContent>
-            </MuiCard>
-          </Box>
-        )}
     </>
   );
-}
 
+}
 export default Home;

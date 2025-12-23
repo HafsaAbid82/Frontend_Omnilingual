@@ -1,7 +1,7 @@
 .navbar-toolbar {
-  background: rgb(244, 244, 244) !important;
+  background: transparent !important;
   backdrop-filter: 'blur(8px)' !important;
-  box-shadow: var(--shadow) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 } 
 .logo {
   width: 48px; 
@@ -70,11 +70,12 @@
   transform: translateX(4px) !important;
 }
 .MuiAppBar-root {
-  background: linear-gradient(90deg, #FAF5EB 0%, #F8F1E0 100%) !important;
+  background: transparent !important;
   width: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  backdrop-filter: 'blur(24px)' !important;
   position: relative !important;
   display: flex !important;
   justify-content: center !important;

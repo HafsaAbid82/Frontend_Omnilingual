@@ -48,8 +48,9 @@ function Navbar() {
       onClose={handleMenuClose}
       sx={{
         '& .MuiPaper-root': {
-          backgroundColor: '#1a2332',
-          color: '#FAF5EB',
+          backgroundColor: 'transparent',
+          backdropFilter: 'blur(12px)',
+          color: '#1a2332',
           borderRadius: '12px',
           marginTop: '12px',
           minWidth: '220px',
@@ -61,7 +62,7 @@ function Navbar() {
       <Typography
         variant="subtitle2"
         sx={{
-          color: '#FAF5EB',
+          color: '#1a2332',
           fontSize: '0.75rem',
           fontWeight: 500,
           padding: '8px 16px 4px',
@@ -78,8 +79,7 @@ function Navbar() {
           padding: '12px 16px',
           gap: '12px',
           '&:hover': {
-            backgroundColor: '#0B1118',
-            color: '#FAF5EB'
+            color: '#2d3748'
           }
         }}
       >
@@ -93,8 +93,7 @@ function Navbar() {
           padding: '12px 16px',
           gap: '12px',
           '&:hover': {
-            backgroundColor: '#0B1118',
-            color: '#FAF5EB'
+            color: '#2d3748'
           }
         }}
       >
@@ -107,7 +106,7 @@ function Navbar() {
       <Typography
         variant="subtitle2"
         sx={{
-          color: '#FAF5EB',
+          color: '#1a2332',
           fontSize: '0.75rem',
           fontWeight: 500,
           padding: '8px 16px 4px',
@@ -124,8 +123,7 @@ function Navbar() {
           padding: '12px 16px',
           gap: '12px',
           '&:hover': {
-            backgroundColor: '#0B1118',
-            color: '#FAF5EB'
+            color: '#2d3748'
           }
         }}
       >
@@ -139,8 +137,7 @@ function Navbar() {
           padding: '12px 16px',
           gap: '12px',
           '&:hover': {
-            backgroundColor: '#0B1118',
-            color: '#FAF5EB'
+            color: '#2d3748'
           }
         }}
       >
@@ -170,7 +167,7 @@ function Navbar() {
 
   return (
     <>
-      <Box sx={{ flexGrow: 1, mt: 0, width: '100vw', zIndex: 2 }}>
+      <Box sx={{ flexGrow: 1, mt: 0, width: '94vw', zIndex: 2 }} >
         <AppBar 
           position="relative" 
           sx={{ 
@@ -193,7 +190,6 @@ function Navbar() {
               margin: '0 auto',
               width: '100%',
               minHeight: '80px',
-              
               px: { xs: 2, sm: 3, md: 4, lg: 6, xl: 8 } // Increased padding for larger width
             }}
             className="navbar-toolbar"
