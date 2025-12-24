@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from 'react-router-dom'; // Add this import
 import Divider from '@mui/material/Divider';
 import Paper from '@mui/material/Paper';
 import Tooltip from '@mui/material/Tooltip';
@@ -38,6 +39,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import "./Home.css";
 
 function Home() {
+  const navigate = useNavigate(); // Add this hook
+  
   const [files, setFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [results, setResults] = useState(null);
@@ -58,12 +61,10 @@ function Home() {
   const [showBulkProcessing, setShowBulkProcessing] = useState(false);
   const [shouldTriggerBulkInput, setShouldTriggerBulkInput] = useState(false);
 
- 
   const audioRef = useRef(null);
   const fileInputRef = useRef(null);
   const bulkFileInputRef = useRef(null);
   
- 
   useEffect(() => {
     if (files.length > 0 && processingType === 'Single Processing') {
       const file = files[0];
@@ -84,9 +85,9 @@ function Home() {
       setAudioUrl(null);
     }
   }, [files, processingType]);
+  
   useEffect(() => {
     if (showBulkProcessing && bulkFileInputRef.current) {
-  
       const timer = setTimeout(() => {
         bulkFileInputRef.current.click();
       }, 100);
@@ -100,7 +101,6 @@ function Home() {
     const audio = audioRef.current;
     if (!audio) return;
 
-    
     audio.volume = volume;
 
     const updateTime = () => setCurrentTime(audio.currentTime);
@@ -118,7 +118,6 @@ function Home() {
     };
   }, []);
 
- 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
@@ -181,7 +180,6 @@ function Home() {
     if (!files.length) return;
 
     setLoading(true);
-    setResults(null);
     setError(null);
 
     const formData = new FormData();
@@ -198,8 +196,13 @@ function Home() {
       }
 
       const data = await response.json();
-      setResults(data.results || {});
-      setSelectedCard(2);
+      // Navigate to transcription page with results
+      navigate('/transcription', { 
+        state: { 
+          results: data.results || {},
+          selectedFile: selectedFile
+        } 
+      });
     } catch (err) {
       setError("Failed to connect to backend");
     } finally {
@@ -249,13 +252,6 @@ function Home() {
     }
   };
 
-  const handleCardClick = (index) => {
-    setSelectedCard(index);
-    if (index === 1) {
-      setIsRecording(!isRecording);
-    }
-  };
-
   const formatFileSize = (bytes) => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -286,44 +282,9 @@ function Home() {
     setCurrentTime(time);
   };
 
-
   return (
     <>
-      <div className="floating-background">
-        {[...Array(12)].map((_, i) => { 
-          const randomLeft = Math.random() * 100; 
-          const randomTop = Math.random() * 100; 
-          const colors = [
-            'rgba(42, 67, 101, 0.08)', 
-            'rgba(74, 144, 226, 0.08)',  
-            'rgba(11, 17, 24, 0.05)', 
-            'rgba(45, 55, 72, 0.06)', 
-            'rgba(250, 245, 235, 0.1)', 
-          ];
-          
-          const colorIndex = i % colors.length;
-          
-          return (
-            <div
-              key={i}
-              className="floating-circle"
-              style={{
-                '--float-y': `${Math.random() * 60 - 30}px`,
-                '--float-x': `${Math.random() * 60 - 30}px`,
-                '--rotate': `${Math.random() * 180}deg`,
-                width: `${Math.random() * 60 + 40}px`,
-                height: `${Math.random() * 60 + 40}px`,
-                left: `${randomLeft}%`,
-                top: `${randomTop}%`,
-                animationDelay: `${i * 0.3}s`,
-                background: colors[colorIndex],
-                animationDuration: `${15 + Math.random() * 10}s`,
-                border: '1px solid rgba(74, 144, 226, 0.05)',
-              }}
-            />
-          );
-        })}
-      </div>
+      <div className="floating-background" />
 
       <input
         type="file"
@@ -350,7 +311,7 @@ function Home() {
         style={{ display: 'none' }}
       />
 
-      <Box className="home-container">
+      <Box className="home-container" >
         <Box className="home-header">
           <Typography variant="h1" className="home-title">
             Audio Transcription
@@ -470,13 +431,13 @@ function Home() {
                       </Typography>
 
                       <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
-                        <Typography variant="caption" sx={{ color: '#666' }}>
+                        <Typography variant="caption" sx={{ color: '#666', mt: 0.5 }}>
                           {formatFileSize(selectedFile.size)}
                         </Typography>
 
                         <Typography
                           variant="caption"
-                          sx={{ color: '#666', textTransform: 'uppercase' }}
+                          sx={{ color: '#666', textTransform: 'uppercase', mt: 0.5 }}
                         >
                           {selectedFile.type.split('/')[1] || 'audio'}
                         </Typography>
@@ -487,6 +448,9 @@ function Home() {
                           variant="outlined"
                           sx={{ 
                             borderColor: 'rgba(74, 144, 226, 0.3)',
+                            height: 24,
+                            padding: 0.15,
+                            mt: 0.25,
                             color: '#2d3748'
                           }}
                         />
@@ -496,13 +460,13 @@ function Home() {
                     <IconButton
                       onClick={removeFile}
                       sx={{
-                        color: '#dc2626',
+                        color: '#0B1118',
                         '&:hover': {
-                          backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                          backgroundColor: 'rgba(11, 17, 24, 0.06)',
                         },
                       }}
                     >
-                      <DeleteIcon />
+                      <DeleteIcon sx={{ color: '#0B1118' }} />
                     </IconButton>
                   </Box>
                 </Box>
@@ -589,7 +553,7 @@ function Home() {
                       backgroundColor: '#0B1118',
                       color: 'white',
                       borderRadius: '12px',
-                      padding: '4px 2px',
+                      padding: '12px 24px',
                       fontSize: '1rem',
                       fontWeight: 600,
                       textTransform: 'none',
@@ -602,38 +566,11 @@ function Home() {
                       '&:disabled': {
                         backgroundColor: '#9ca3af'
                       },
-                      transition: 'all 0.3s ease'
                     }}
                   >
-                    {loading ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ width: 16, height: 16 }}>
-                          <CircularProgress size={16} color="inherit" />
-                        </Box>
-                        Processing...
-                      </Box>
-                    ) : (
-                      'Transcribe Audio'
-                    )}
+                  Transcribe Audio
                   </Button>
                 </Box>
-                {loading && (
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="body2" sx={{ color: '#666', mb: 1, textAlign: 'center' }}>
-                      Transcribing audio file...
-                    </Typography>
-                    <LinearProgress 
-                      sx={{ 
-                        height: 6, 
-                        borderRadius: 3,
-                        backgroundColor: 'rgba(11, 17, 24, 0.1)',
-                        '& .MuiLinearProgress-bar': {
-                          backgroundColor: '#0B1118'
-                        }
-                      }} 
-                    />
-                  </Box>
-                )}
               </MuiCardContent>
           </div>
         )}
@@ -641,136 +578,8 @@ function Home() {
           <BulkProcessing 
             files={bulkFiles}
             onFilesChange={setBulkFiles}
+            onNavigateToTranscription={navigate} // Add this prop
           />
-        )}
-        {results && typeof results === 'object' && (
-         <div style={{ maxWidth: '900px', margin: '0 auto', marginBottom: '48px', borderRadius: '16px', border: '1px solid rgba(11, 17, 24, 0.1)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}> 
-          <Box sx={{ 
-            maxWidth: '900px', 
-            margin: '0 auto', 
-            justifyContent: 'center',
-            alignItems: 'center',
-            mb: 6,
-          }}>
-              <CardContent>
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'left', 
-                  justifyContent: 'center', 
-                  mb: 4,
-                  flexDirection: 'column',
-                  textAlign: 'center'
-                }}>
-                  <Typography variant="h6" sx={{ 
-                  fontWeight: 600, 
-                  textAlign: 'left',
-                  mb: 3, 
-                  color: '#0B1118',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1
-                }}>
-                    <RecordVoiceOverIcon sx={{ color: '#2d3748' }} />
-                 Transcription Results
-                </Typography>      
-                </Box>
-                <Divider sx={{ my: 2, borderColor: 'rgba(11, 17, 24, 0.1)' , mt:-2}} />
-                
-                <Box sx={{ 
-                  background: "transparent",
-                  backdropfilter: 'blur(8px)' ,
-                  borderRadius: '12px',
-                  p: 8,
-                }}>
-                  {Object.entries(results).map(([fileName, transcription], index) => (
-                    <Box key={fileName} sx={{ mb: index !== Object.entries(results).length - 1 ? 3 : 0 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        mb: 2,
-                        p: 1.5,
-                      }}>
-                        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2 , justifyContent: 'space-between', width: '100%'}}>
-                        <Typography sx={{ 
-                          fontWeight: 600, 
-                          color: '#0B1118',
-                          fontSize: '1rem',
-                          mb: 2,
-                        }}>
-                          {selectedFile.name}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                 <Tooltip title={copied ? 'Copied to clipboard!' : 'Copy'}>
-  <IconButton
-    onClick={() => {
-      const text = Object.entries(results)
-        .map(([fileName, transcription]) =>
-          `${fileName}:\n${
-            typeof transcription === 'string'
-              ? transcription
-              : JSON.stringify(transcription, null, 2)
-          }`
-        )
-        .join('\n\n');
-
-      navigator.clipboard.writeText(text).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      });
-    }}
-    sx={{
-      color: copied ? '#16a34a' : '#4A90E2',
-      borderRadius: '100%',
-      p: 1,
-      mb: 4,
-      '&:hover': {
-        backgroundColor: copied
-          ? 'rgba(22, 163, 74, 0.12)'
-          : 'rgba(74, 144, 226, 0.08)',
-      },
-      transition: 'all 0.2s ease',
-    }}
-  >
-    {copied ? (
-      <CheckCircleOutline fontSize="small" />
-    ) : (
-      <ContentCopyIcon fontSize="small" />
-    )}
-  </IconButton>
-</Tooltip>
-                </Box>
-                </Box>
-                      <Paper 
-                        elevation={0}
-                        sx={{ 
-                          p: 2.5,
-                           background: "transparent" ,
-                           backdropfilter: 'blur(8px)',
-                          borderRadius: '8px',
-                          border: '1px solid rgba(11, 17, 24, 0.05)'
-                        }}
-                      >
-                        <Typography sx={{ 
-                          color: '#2d3748',
-                          lineHeight: 1.6,
-                          fontSize: '0.95rem',
-                          whiteSpace: 'pre-wrap'
-                        }}>
-                          {typeof transcription === "string" ? transcription : JSON.stringify(transcription, null, 2)}
-                        </Typography>
-                      </Paper>
-                      {index !== Object.entries(results).length - 1 && (
-                        <Divider sx={{ my: 3, borderColor: 'rgba(11, 17, 24, 0.05)' }} />
-                      )}
-                    </Box>
-                  ))}
-                </Box>
-                
-              </CardContent>
-          </Box>
-</div>  
-
         )}
         {error && (
           <Box sx={{ maxWidth: '800px', mx: 'auto', mb: 6 }}>

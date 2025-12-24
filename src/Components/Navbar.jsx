@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -20,6 +21,7 @@ import './Navbar.css';
 function Navbar() {
   const [anchorEl, setAnchorEl] = useState(null);
   const isMenuOpen = Boolean(anchorEl);
+  const navigate = useNavigate();
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -32,7 +34,7 @@ function Navbar() {
   const menuId = 'primary-search-account-menu';
 
   const renderMenu = (
-    <Menu
+      <Menu
       anchorEl={anchorEl}
       anchorOrigin={{
         vertical: 'bottom',
@@ -74,7 +76,7 @@ function Navbar() {
       </Typography>
       
       <MenuItem 
-        onClick={handleMenuClose}
+        onClick={(e)=>{ handleMenuClose(); navigate('/'); }}
         sx={{
           padding: '12px 16px',
           gap: '12px',
@@ -88,7 +90,7 @@ function Navbar() {
       </MenuItem>
       
       <MenuItem 
-        onClick={handleMenuClose}
+        onClick={(e)=>{ handleMenuClose(); navigate('/'); }}
         sx={{
           padding: '12px 16px',
           gap: '12px',
@@ -199,10 +201,12 @@ function Navbar() {
               <IconButton 
                 size="medium" 
                 edge="start" 
+                onClick={() => navigate('/')}
                 sx={{ 
                   width: 56, 
                   height: 56, 
                   p: 0,
+                  cursor: 'pointer',
                   '&:hover': { 
                     backgroundColor: 'transparent',
                     '& img': {
@@ -223,6 +227,7 @@ function Navbar() {
                     fontWeight: 800,
                     letterSpacing: '-0.5px',
                     lineHeight: 1,
+                    mb: 0.75,
                     fontSize: { xs: '1.25rem', md: '1.5rem', lg: '1.75rem' } // Slightly larger for wider navbar
                   }}
                 >

@@ -31,7 +31,9 @@ import {
   ContentCopy,
   RecordVoiceOver
 } from '@mui/icons-material';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CircularProgress from '@mui/material/CircularProgress';
+import { useNavigate } from 'react-router-dom';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 
@@ -49,6 +51,7 @@ function BulkProcessing({ files = [], onFilesChange }) {
   
   const fileInputRef = useRef(null);
   const audioRefs = useRef({});
+  const navigate = useNavigate();
 
   const categories = {
     toBeProcessed: files.filter(file => !processingStatus[file.name] || processingStatus[file.name]?.status === 'pending'),
@@ -196,6 +199,8 @@ function BulkProcessing({ files = [], onFilesChange }) {
     });
     setProcessingStatus(initialStatus);
 
+    const allResults = {}; // Collect all results for navigation
+
     // Process files sequentially
     for (const file of files) {
       try {
@@ -217,6 +222,9 @@ function BulkProcessing({ files = [], onFilesChange }) {
           }
         }));
 
+        // Collect result for navigation
+        allResults[file.name] = transcription;
+
       } catch (error) {
         setProcessingStatus(prev => ({
           ...prev,
@@ -226,6 +234,15 @@ function BulkProcessing({ files = [], onFilesChange }) {
     }
     
     setIsProcessing(false);
+    
+    // Navigate to transcription page with all results
+    navigate('/transcription', {
+      state: {
+        results: allResults,
+        files: files,
+        isBulk: true
+      }
+    });
   };
 
   const handleProcessSingle = async (fileName) => {
@@ -251,6 +268,16 @@ function BulkProcessing({ files = [], onFilesChange }) {
           transcription: transcription
         }
       }));
+
+      // Navigate to transcription page with single result
+      navigate('/transcription', {
+        state: {
+          results: { [fileName]: transcription },
+          files: [file],
+          isBulk: false,
+          selectedFile: file
+        }
+      });
 
     } catch (error) {
       setProcessingStatus(prev => ({
@@ -326,23 +353,6 @@ function BulkProcessing({ files = [], onFilesChange }) {
     delete processingStatus[fileName];
   };
 
-  const handleCopyTranscription = (fileName, transcription) => {
-    navigator.clipboard.writeText(transcription).then(() => {
-      setCopiedFiles(prev => ({
-        ...prev,
-        [fileName]: true
-      }));
-      
-      // Reset copied state after 1.5 seconds
-      setTimeout(() => {
-        setCopiedFiles(prev => ({
-          ...prev,
-          [fileName]: false
-        }));
-      }, 1500);
-    });
-  };
-
   const formatTime = (seconds) => {
     if (isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -398,7 +408,6 @@ function BulkProcessing({ files = [], onFilesChange }) {
 
   return (
     <Box sx={{ maxWidth: '100vw', py: 4, }}>
-
       {/* Hidden file input */}
       <input
         type="file"
@@ -412,7 +421,7 @@ function BulkProcessing({ files = [], onFilesChange }) {
       <div style={{ maxWidth: '1000px', margin: '0 auto', marginBottom: '48px', borderRadius: '16px', border: '1px solid rgba(11, 17, 24, 0.1)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)', padding: '24px 32px', background: 'transparent', backdropFilter: 'blur(12px)' }}>
         <Box sx={{ mb: 6 , }}>
           <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%'}}>
-            <Typography variant="h4" sx={{ fontWeight: 600, color: '#0B1118' }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#0B1118' }}>
               Bulk Audio Processing
             </Typography>
             
@@ -422,11 +431,18 @@ function BulkProcessing({ files = [], onFilesChange }) {
                   <Switch
                     checked={autoProcess}
                     onChange={(e) => setAutoProcess(e.target.checked)}
-                    color="primary"
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: '#0B1118',
+                      },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                        backgroundColor: '#0B1118',
+                      }
+                    }}
                   />
                 }
                 label="Auto Process"
-                sx={{ color: '#2d3748' }}
+                sx={{ color: '#0B1118' }}
               />
               
               <Button
@@ -591,13 +607,15 @@ function BulkProcessing({ files = [], onFilesChange }) {
               
               <Box sx={{ 
                 maxHeight: '500px',
-                overflow: 'auto'
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain',
               }}>
                 {files.map((file, index) => {
                   const status = processingStatus[file.name];
                   const audioPlayer = audioPlayers[file.name];
                   const isProcessingThisFile = processingSingleFile === file.name;
-                  const isCopied = copiedFiles[file.name] || false;
                   
                   return (
                     <Box 
@@ -605,18 +623,16 @@ function BulkProcessing({ files = [], onFilesChange }) {
                       sx={{ 
                         p: 3,
                         backgroundColor: status?.status === 'processing' ? 'rgba(74, 144, 226, 0.02)' : 'transparent',
-                        mb: 2,
-                        
+                        mb: 1,
                         borderRadius: '8px'
                       }}
                     >
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                        <Box sx={{ flex: 1 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                            <Typography sx={{ fontWeight: 600, color: '#0B1118' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0 }}>
+                        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#0B1118', fontSize: '1rem', lineHeight: 1.2 }}>
                               {file.name}
                             </Typography>
-                            
                             {status && (
                               <Chip
                                 icon={
@@ -630,28 +646,26 @@ function BulkProcessing({ files = [], onFilesChange }) {
                                 size="small"
                                 sx={{
                                   backgroundColor:
-                                    status.status === 'completed' ? 'rgba(76, 175, 80, 0.1)' :
-                                    status.status === 'processing' ? 'rgba(74, 144, 226, 0.1)' :
-                                    status.status === 'pending' ? 'rgba(45, 55, 72, 0.1)' :
-                                    status.status === 'flagged' ? 'rgba(255, 152, 0, 0.1)' :
-                                    'rgba(244, 67, 54, 0.1)',
+                                    status.status === 'completed' ? 'transparent' :
+                                    status.status === 'processing' ? 'transparent' :
+                                    status.status === 'pending' ? 'transparent' :
+                                    status.status === 'flagged' ? 'transparent' :
+                                    'transparent',
                                   color:
-                                    status.status === 'completed' ? '#4caf50' :
-                                    status.status === 'processing' ? '#4A90E2' :
+                                    status.status === 'completed' ? '#2d3748' :
+                                    status.status === 'processing' ? '#2d3748' :
                                     status.status === 'pending' ? '#2d3748' :
-                                    status.status === 'flagged' ? '#ff9800' :
-                                    '#f44336'
+                                    status.status === 'flagged' ? '#2d3748' :
+                                    '#2d3748',
+                                    border: '0.5px solid #5e6570ff',
                                 }}
                               />
                             )}
                           </Box>
-                          
-                          <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                            <Typography variant="caption" sx={{ color: '#666' }}>
-                              {formatFileSize(file.size)}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase' }}>
-                              {file.type.split('/')[1] || 'audio'}
+
+                          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                            <Typography variant="body2" sx={{ color: '#666', lineHeight: 1.2, mt: 0.85 }}>
+                              {`${formatFileSize(file.size)} · ${(file.type && file.type.split('/')[1]) ? file.type.split('/')[1].toUpperCase() : 'AUDIO'}`}
                             </Typography>
                             {audioPlayer?.duration && (
                               <Chip 
@@ -660,24 +674,28 @@ function BulkProcessing({ files = [], onFilesChange }) {
                                 size="small"
                                 variant="outlined"
                                 sx={{ 
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  height: 22,
+                                  mt: 1,
                                   borderColor: 'rgba(74, 144, 226, 0.3)',
-                                  color: '#2d3748'
+                                  color: '#2d3748',
                                 }}
                               />
                             )}
                           </Box>
                         </Box>
-                        
+
                         <IconButton
                           onClick={() => handleRemoveFile(file.name)}
                           sx={{
-                            color: '#dc2626',
+                            color: '#0B1118',
                             '&:hover': {
-                              backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                              backgroundColor: 'rgba(11, 17, 24, 0.06)',
                             },
                           }}
                         >
-                          <DeleteIcon />
+                          <DeleteIcon sx={{ color: '#0B1118' }} />
                         </IconButton>
                       </Box>
                       
@@ -769,110 +787,9 @@ function BulkProcessing({ files = [], onFilesChange }) {
                                   ml: 2
                                 }}
                               >
-                                {isProcessingThisFile ? (
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Box sx={{ width: 16, height: 16 }}>
-                                      <CircularProgress size={16} color="inherit" />
-                                    </Box>
-                                  </Box>
-                                ) : (
-                                  <Description />
-                                )}
                               </IconButton>
                             )}
                           </Box>
-                          
-                          {status?.status === 'processing' && (
-                            <Box sx={{ mt: 2 }}>
-                              <LinearProgress 
-                                variant="determinate" 
-                                value={status.progress || 0}
-                                sx={{ 
-                                  height: 6, 
-                                  borderRadius: 3,
-                                  backgroundColor: 'rgba(11, 17, 24, 0.1)',
-                                  '& .MuiLinearProgress-bar': {
-                                    backgroundColor: '#0B1118'
-                                  }
-                                }}
-                              />
-                              <Typography variant="caption" sx={{ color: '#666', mt: 0.5, display: 'block' }}>
-                                Processing... {status.progress || 0}%
-                              </Typography>
-                            </Box>
-                          )}
-                          
-                          {status?.transcription && (
-                            <Box sx={{ mt: 3 }}>
-                              <Box sx={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                alignItems: 'center', 
-                                mb: 2 
-                              }}>
-                                <Typography variant="subtitle2" sx={{ 
-                                  fontWeight: 600, 
-                                  color: '#0B1118',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 1
-                                }}>
-                                  <RecordVoiceOver sx={{ fontSize: 20 }} />
-                                  Transcription:
-                                </Typography>
-                                
-                                <Tooltip title={isCopied ? "Copied!" : "Copy to clipboard"}>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleCopyTranscription(file.name, status.transcription)}
-                                    sx={{
-                                      color: isCopied ? '#4caf50' : '#4A90E2',
-                                      borderRadius: '100%',
-                                      p: 1,
-                                      '&:hover': {
-                                        backgroundColor: isCopied
-                                          ? 'rgba(76, 175, 80, 0.12)'
-                                          : 'rgba(74, 144, 226, 0.08)',
-                                      },
-                                      transition: 'all 0.2s ease',
-                                    }}
-                                  >
-                                    {isCopied ? (
-                                      <CheckCircleOutline fontSize="small" />
-                                    ) : (
-                                      <ContentCopy fontSize="small" />
-                                    )}
-                                  </IconButton>
-                                </Tooltip>
-                              </Box>
-                              
-                              <Paper 
-                                elevation={0}
-                                sx={{ 
-                                  p: 2.5,
-                                  background: "transparent",
-                                  backdropFilter: 'blur(8px)',
-                                  borderRadius: '8px',
-                                  border: '1px solid rgba(11, 17, 24, 0.05)'
-                                }}
-                              >
-                                <Typography sx={{ 
-                                  color: '#2d3748',
-                                  lineHeight: 1.6,
-                                  fontSize: '0.95rem',
-                                  whiteSpace: 'pre-wrap'
-                                }}>
-                                  {status.transcription}
-                                </Typography>
-                              </Paper>
-                            </Box>
-                          )}
-                          
-                          {status?.error && (
-                            <Typography variant="caption" sx={{ color: '#f44336', mt: 1, display: 'block' }}>
-                              Error: {status.error}
-                            </Typography>
-                          )}
                         </Box>
                       )}
                     </Box>

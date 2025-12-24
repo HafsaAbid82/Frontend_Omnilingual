@@ -1,6 +1,6 @@
 .navbar-toolbar {
   background: transparent !important;
-  backdrop-filter: 'blur(8px)' !important;
+  backdrop-filter: blur(8px) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 } 
 .logo {
@@ -74,8 +74,9 @@
   width: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
-  backdrop-filter: 'blur(24px)' !important;
+  /* Remove full-width AppBar shadow to avoid double-shadow seam; keep shadow on inner toolbar */
+  box-shadow: none !important;
+  backdrop-filter: blur(8px) !important;
   position: relative !important;
   display: flex !important;
   justify-content: center !important;
